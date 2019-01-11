@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -33,11 +35,7 @@ class CompletableFutureTest {
 		});
 
 		// create a future given a Supplier
-		CompletableFuture<String> f3 = CompletableFuture.supplyAsync(() -> {
-			Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
-			logger.log(Level.INFO, "Execute f3");
-			return FUTURE_COMPLETED;
-		});
+		CompletableFuture<String> f3 = normalCompletalbeFuture(1);
 
 		// create a future with the first future completed, in this case f3
 		CompletableFuture<Object> f4 = CompletableFuture.anyOf(f2, f3);
@@ -53,11 +51,7 @@ class CompletableFutureTest {
 			Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
 			logger.log(Level.INFO, "Execute f6");
 		});
-		CompletableFuture<String> f7 = CompletableFuture.supplyAsync(() -> {
-			Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
-			logger.log(Level.INFO, "Execute f7");
-			return FUTURE_COMPLETED;
-		});
+		CompletableFuture<String> f7 = normalCompletalbeFuture(2);
 
 		// create a future with the first future completed, in this case f6
 		CompletableFuture<Object> f8 = CompletableFuture.anyOf(f6, f7);
@@ -68,11 +62,7 @@ class CompletableFutureTest {
 
 	@Test
 	void joinANdGetNowTest() {
-		CompletableFuture<String> f1 = CompletableFuture.supplyAsync(() -> {
-			Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
-			logger.log(Level.INFO, "Execute f1");
-			return FUTURE_COMPLETED;
-		});
+		CompletableFuture<String> f1 = normalCompletalbeFuture(1);
 		// use default value if the future is not completed
 		assertEquals(CUSTOM_COMPLETE, f1.getNow(CUSTOM_COMPLETE));
 		// wait to complete the future
@@ -80,11 +70,8 @@ class CompletableFutureTest {
 		// normal value is returned when the future is complete
 		assertEquals(FUTURE_COMPLETED, f1.getNow(CUSTOM_COMPLETE));
 
-		CompletableFuture<String> f2 = CompletableFuture.supplyAsync(() -> {
-			Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
-			logger.log(Level.INFO, "Execute f2");
-			return FUTURE_COMPLETED;
-		});
+		// using join to get the value
+		CompletableFuture<String> f2 = normalCompletalbeFuture(1);
 		assertEquals(FUTURE_COMPLETED, f2.join());
 	}
 
@@ -100,10 +87,7 @@ class CompletableFutureTest {
 			return result.toString();
 		});
 
-		CompletableFuture<String> f2 = CompletableFuture.supplyAsync(() -> {
-			Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
-			return FUTURE_COMPLETED;
-		}).handle((result, exception) -> {
+		CompletableFuture<String> f2 = normalCompletalbeFuture(1).handle((result, exception) -> {
 			if (exception != null) {
 				return CUSTOM_COMPLETE;
 			}
@@ -120,19 +104,12 @@ class CompletableFutureTest {
 	@Test
 	void finishingCompletableFutureTest() throws InterruptedException, ExecutionException {
 
-		CompletableFuture<String> f1 = CompletableFuture.supplyAsync(() -> {
-			Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
-			logger.log(Level.INFO, "Execute f1");
-			return FUTURE_COMPLETED;
-		});
+		CompletableFuture<String> f1 = normalCompletalbeFuture(2);
 		// the future is completed with given value
 		f1.complete(CUSTOM_COMPLETE);
 		assertEquals(CUSTOM_COMPLETE, f1.get());
 
-		CompletableFuture<String> f2 = CompletableFuture.supplyAsync(() -> {
-			Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
-			return FUTURE_COMPLETED;
-		});
+		CompletableFuture<String> f2 = normalCompletalbeFuture(2);
 		// the future is completed with given exception
 		f2.completeExceptionally(new NumberFormatException());
 
@@ -144,11 +121,7 @@ class CompletableFutureTest {
 			assertTrue(e.getCause() instanceof NumberFormatException, "The exception must be NumberFormatException");
 		}
 
-		CompletableFuture<String> f3 = CompletableFuture.supplyAsync(() -> {
-			Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
-			logger.log(Level.INFO, "Execute f3");
-			return FUTURE_COMPLETED;
-		});
+		CompletableFuture<String> f3 = normalCompletalbeFuture(2);
 		// the future is cancelled if is not complete
 		f3.cancel(true);
 
@@ -171,11 +144,7 @@ class CompletableFutureTest {
 		f1.obtrudeValue(CUSTOM_COMPLETE);
 		assertEquals(CUSTOM_COMPLETE, f1.get());
 
-		CompletableFuture<String> f2 = CompletableFuture.supplyAsync(() -> {
-			Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
-			logger.log(Level.INFO, "Execute f2");
-			return FUTURE_COMPLETED;
-		});
+		CompletableFuture<String> f2 = normalCompletalbeFuture(1);
 		f2.completeExceptionally(new NumberFormatException());
 		try {
 			f2.get();
@@ -202,20 +171,12 @@ class CompletableFutureTest {
 	void procesingResultsTest() throws InterruptedException, ExecutionException {
 
 		// using thenApply
-		CompletableFuture<String> f1 = CompletableFuture.supplyAsync(() -> {
-			Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
-			logger.log(Level.INFO, "Execute f1");
-			return FUTURE_COMPLETED;
-		}).thenApply(s -> "The result is: " + s);
+		CompletableFuture<String> f1 = normalCompletalbeFuture(2).thenApply(s -> "The result is: " + s);
 		assertEquals("The result is: " + FUTURE_COMPLETED, f1.get());
 
 		// using thenAccept
 		String[] vector = { "" };
-		CompletableFuture<Void> f2 = CompletableFuture.supplyAsync(() -> {
-			Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
-			logger.log(Level.INFO, "Execute f1");
-			return FUTURE_COMPLETED;
-		}).thenAcceptAsync(s -> {
+		CompletableFuture<Void> f2 = normalCompletalbeFuture(2).thenAcceptAsync(s -> {
 			vector[0] = CUSTOM_COMPLETE;
 		});
 		f2.get();
@@ -223,11 +184,7 @@ class CompletableFutureTest {
 
 		// using thenRun
 		String[] vector2 = { "" };
-		CompletableFuture<Void> f3 = CompletableFuture.supplyAsync(() -> {
-			Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
-			logger.log(Level.INFO, "Execute f1");
-			return FUTURE_COMPLETED;
-		}).thenRun(() -> {
+		CompletableFuture<Void> f3 = normalCompletalbeFuture(2).thenRun(() -> {
 			vector2[0] = CUSTOM_COMPLETE;
 		});
 		f3.get();
@@ -276,16 +233,8 @@ class CompletableFutureTest {
 
 		// using applyToEither
 		// in this case f1 is completed first
-		CompletableFuture<String> f1 = CompletableFuture.supplyAsync(() -> {
-			Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
-			logger.log(Level.INFO, "Execute f1");
-			return FUTURE_COMPLETED;
-		});
-		CompletableFuture<String> f2 = CompletableFuture.supplyAsync(() -> {
-			Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
-			logger.log(Level.INFO, "Execute f2");
-			return CUSTOM_COMPLETE;
-		});
+		CompletableFuture<String> f1 = normalCompletalbeFuture(1);
+		CompletableFuture<String> f2 = customCompletalbeFuture(2);
 
 		CompletableFuture<String> f3 = f1.applyToEither(f2, s -> s);
 		assertEquals(FUTURE_COMPLETED, f3.get());
@@ -293,16 +242,8 @@ class CompletableFutureTest {
 		// using acceptEither
 		// in this case f5 is completed first
 		String[] vector = { "" };
-		CompletableFuture<String> f4 = CompletableFuture.supplyAsync(() -> {
-			Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
-			logger.log(Level.INFO, "Execute f4");
-			return FUTURE_COMPLETED;
-		});
-		CompletableFuture<String> f5 = CompletableFuture.supplyAsync(() -> {
-			Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
-			logger.log(Level.INFO, "Execute f5");
-			return CUSTOM_COMPLETE;
-		});
+		CompletableFuture<String> f4 = normalCompletalbeFuture(2);
+		CompletableFuture<String> f5 = customCompletalbeFuture(1);
 
 		CompletableFuture<Void> f6 = f4.acceptEither(f5, s -> {
 			vector[0] = s;
@@ -313,16 +254,8 @@ class CompletableFutureTest {
 		// using runAfterEither
 		// in this case f8 is completed first
 		String[] vector2 = { "" };
-		CompletableFuture<String> f7 = CompletableFuture.supplyAsync(() -> {
-			Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
-			logger.log(Level.INFO, "Execute f4");
-			return FUTURE_COMPLETED;
-		});
-		CompletableFuture<String> f8 = CompletableFuture.supplyAsync(() -> {
-			Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
-			logger.log(Level.INFO, "Execute f5");
-			return CUSTOM_COMPLETE;
-		});
+		CompletableFuture<String> f7 = normalCompletalbeFuture(2);
+		CompletableFuture<String> f8 = customCompletalbeFuture(1);
 
 		CompletableFuture<Void> f9 = f7.runAfterEither(f8, () -> {
 			vector2[0] = FUTURE_COMPLETED;
@@ -332,6 +265,33 @@ class CompletableFutureTest {
 	}
 
 	@Test
-	void workingWithExecuorServiceTest() throws InterruptedException, ExecutionException {
+	void workingWithExecutorServiceTest() throws InterruptedException, ExecutionException {
+		CompletableFuture<String> f1 = normalCompletalbeFuture(1);
+		CompletableFuture<String> f2 = normalCompletalbeFuture(2);
+		CompletableFuture<String> f3 = customCompletalbeFuture(2);
+
+		ExecutorService pool = Executors.newCachedThreadPool();
+		
+		String result=f1.thenApplyAsync(s -> "The result is: " + s, pool).get();
+		assertEquals("The result is: " + FUTURE_COMPLETED, result);
+		
+		String result2=f2.thenCombineAsync(f3, (a,b)->a+b, pool).get();
+		assertEquals(FUTURE_COMPLETED + CUSTOM_COMPLETE, result2);
+		
+		pool.shutdown();
+	}
+
+	private CompletableFuture<String> normalCompletalbeFuture(int seconds) {
+		return CompletableFuture.supplyAsync(() -> {
+			Uninterruptibles.sleepUninterruptibly(seconds, TimeUnit.SECONDS);
+			return FUTURE_COMPLETED;
+		});
+	}
+
+	private CompletableFuture<String> customCompletalbeFuture(int seconds) {
+		return CompletableFuture.supplyAsync(() -> {
+			Uninterruptibles.sleepUninterruptibly(seconds, TimeUnit.SECONDS);
+			return CUSTOM_COMPLETE;
+		});
 	}
 }
